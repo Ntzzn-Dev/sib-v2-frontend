@@ -108,7 +108,16 @@ export const resourceDefs = {
       ["Cidade", "endPessoa.cidade"],
     ],
     fields: [
-      { name: "cpfPessoa", label: "CPF", required: true, createOnly: true },
+      {
+        name: "cpfPessoa",
+        label: "CPF",
+        required: true,
+        createOnly: true,
+        mask: "cpf",
+        maxLength: 14,
+        inputMode: "numeric",
+        pattern: "[0-9]{3}\\.[0-9]{3}\\.[0-9]{3}-[0-9]{2}",
+      },
       { name: "nomePessoa", label: "Nome completo", required: true },
       { name: "telPessoa", label: "Telefone" },
       {
@@ -136,7 +145,16 @@ export const resourceDefs = {
       ["Salário", "salarioFunc", "money"],
     ],
     fields: [
-      { name: "cpfPessoa", label: "CPF", required: true, createOnly: true },
+      {
+        name: "cpfPessoa",
+        label: "CPF",
+        required: true,
+        createOnly: true,
+        mask: "cpf",
+        maxLength: 14,
+        inputMode: "numeric",
+        pattern: "[0-9]{3}\\.[0-9]{3}\\.[0-9]{3}-[0-9]{2}",
+      },
       { name: "nomePessoa", label: "Nome completo", required: true },
       { name: "telPessoa", label: "Telefone" },
       {
@@ -220,8 +238,22 @@ export const resourceDefs = {
       ["CEP", "cep"],
     ],
     fields: [
-      { name: "uf", label: "UF", required: true, maxLength: 2 },
-      { name: "cep", label: "CEP", required: true },
+      {
+        name: "uf",
+        label: "Estado",
+        type: "select",
+        required: true,
+        optionsUrl: "/enderecos/ufs",
+      },
+      {
+        name: "cep",
+        label: "CEP",
+        required: true,
+        mask: "cep",
+        maxLength: 9,
+        inputMode: "numeric",
+        pattern: "[0-9]{5}-[0-9]{3}",
+      },
       { name: "cidade", label: "Cidade", required: true },
       { name: "bairro", label: "Bairro", required: true },
       { name: "logradouro", label: "Logradouro", required: true },

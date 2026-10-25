@@ -16,6 +16,20 @@ export const initials = (name = "") =>
     .map((part) => part[0])
     .join("")
     .toUpperCase() || "S";
+export const formatCpf = (value = "") => {
+  const digits = String(value).replace(/\D/g, "").slice(0, 11);
+  let formatted = digits.slice(0, 3);
+  if (digits.length > 3) formatted += `.${digits.slice(3, 6)}`;
+  if (digits.length > 6) formatted += `.${digits.slice(6, 9)}`;
+  if (digits.length > 9) formatted += `-${digits.slice(9, 11)}`;
+  return formatted;
+};
+export const formatCep = (value = "") => {
+  const digits = String(value).replace(/\D/g, "").slice(0, 8);
+  return digits.length > 5
+    ? `${digits.slice(0, 5)}-${digits.slice(5)}`
+    : digits;
+};
 export const saleDate = (value = "") => {
   const [date, time = "00:00"] = value.split(" ");
   const [day, month, year] = (date || "").split("/").map(Number);

@@ -60,13 +60,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
   const [modal, setModal] = useState(null);
-  const [activeEmployee, setActiveEmployee] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("sib-employee") || "null");
-    } catch {
-      return null;
-    }
-  });
+  const [activeEmployee, setActiveEmployee] = useState(null);
 
   const notify = useCallback((message, type = "success") => {
     setToast({ message, type });
@@ -108,12 +102,15 @@ export default function App() {
 
   const saveEmployee = (employee) => {
     setActiveEmployee(employee);
-    localStorage.setItem("sib-employee", JSON.stringify(employee));
   };
 
-  const signOut = () => {
+  const signOut = async () => {
+    try {
+      await request("/auth/logout", { method: "POST" });
+    } catch {
+      // Encerra também a sessão visual quando a API estiver indisponível.
+    }
     setActiveEmployee(null);
-    localStorage.removeItem("sib-employee");
     notify("Sessão encerrada.");
   };
 

@@ -7,6 +7,7 @@ export async function request(path, options = {}) {
   try {
     response = await fetch(`${API}${path}`, {
       ...options,
+      credentials: "include",
       headers: {
         ...(options.body ? { "Content-Type": "application/json" } : {}),
         ...options.headers,

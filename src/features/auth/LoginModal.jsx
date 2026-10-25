@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BadgeCheck, LogIn, UserRound } from "lucide-react";
 import { request, jsonRequest } from "../../api/client";
 import { FieldInput, FormError, Modal } from "../../components/ui";
+import { formatCpf } from "../../lib/format";
 
 export default function LoginModal({ data, onClose, onLogin, notify }) {
   const [mode, setMode] = useState(
@@ -26,8 +27,8 @@ export default function LoginModal({ data, onClose, onLogin, notify }) {
       if (signingUp) {
         if (senha !== confirmarSenha)
           throw new Error("As senhas não coincidem.");
-        await request(
-          "/auth/cadastro",
+        const employee = await request(
+          "/funcionarios",
           jsonRequest("POST", {
             cpfPessoa: normalizedCpf,
             nomePessoa: nome.trim(),
@@ -37,22 +38,15 @@ export default function LoginModal({ data, onClose, onLogin, notify }) {
             endPessoa: null,
           }),
         );
-        try {
-          const user = await request(
-            "/auth/login",
-            jsonRequest("POST", { cpf: normalizedCpf, senha }),
-          );
-          onLogin(user);
-          notify(
-            `Conta criada. Bem-vindo(a), ${user.nomePessoa.split(" ")[0]}!`,
-          );
-          onClose();
-        } catch (loginError) {
-          setMode("login");
-          setError(
-            `Conta criada, mas não foi possível entrar automaticamente: ${loginError.message}`,
-          );
-        }
+        onLogin({
+          cpfPessoa: employee.cpfPessoa,
+          nomePessoa: employee.nomePessoa,
+          message: "Conta criada e login realizado",
+        });
+        notify(
+          `Conta criada. Bem-vindo(a), ${employee.nomePessoa.split(" ")[0]}!`,
+        );
+        onClose();
       } else {
         const user = await request(
           "/auth/login",
@@ -102,8 +96,9 @@ export default function LoginModal({ data, onClose, onLogin, notify }) {
           required
           inputMode="numeric"
           maxLength={14}
+          pattern="[0-9]{3}\.[0-9]{3}\.[0-9]{3}-[0-9]{2}"
           value={cpf}
-          onChange={(event) => setCpf(event.target.value)}
+          onChange={(event) => setCpf(formatCpf(event.target.value))}
           placeholder="000.000.000-00"
           autoFocus={!signingUp}
         />
@@ -153,7 +148,7 @@ export default function LoginModal({ data, onClose, onLogin, notify }) {
           <BadgeCheck size={17} />
           <span>
             {signingUp
-              ? "Seu cadastro será salvo no banco de dados do SIB v2."
+              ? "Seu cadastro será criado na API do SIB v2."
               : "Seu acesso é validado pela API do SIB v2."}
           </span>
         </div>

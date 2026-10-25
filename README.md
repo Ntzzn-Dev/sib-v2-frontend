@@ -33,7 +33,7 @@ Reinicie o Vite depois de alterar o `.env`.
 
 - Painel com resumo de produtos e vendas.
 - Criar, consultar, editar, remover e buscar produtos, clientes, funcionários, categorias, marcas, métodos de pagamento e endereços.
-- Cadastro de funcionário por `POST /api/funcionarios` e login validado por `POST /api/auth/login`. Ao concluir o cadastro, o frontend tenta iniciar a sessão automaticamente.
+- Cadastro de funcionários por `POST /api/funcionarios`, que abre uma sessão HTTP; login por `POST /api/auth/login` e encerramento por `POST /api/auth/logout`. A API exige sessão para as demais operações que alteram dados. A sessão visual não é persistida no navegador e termina ao recarregar a página.
 - Fluxo de vendas: iniciar atendimento, selecionar cliente, adicionar produtos, receber pagamento em uma ou mais formas e cancelar venda em aberto.
 - Busca, filtros de status, mensagens da API e estados de conexão.
 

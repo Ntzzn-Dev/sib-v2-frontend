@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
   Check,
-  CircleHelp,
   Plus,
   Search,
   SlidersHorizontal,
@@ -13,7 +12,7 @@ import {
 } from "lucide-react";
 import { request, jsonRequest } from "../../api/client";
 import { resourceDefs } from "../../config/resources";
-import { boolValue, fmt, read } from "../../lib/format";
+import { boolValue, fmt, formatCep, formatCpf, read } from "../../lib/format";
 import {
   EmptyState,
   FieldInput,
@@ -32,7 +31,6 @@ export default function ResourcePage({
   query,
   setQuery,
   setModal,
-  notify,
   refresh,
   loading,
 }) {
@@ -368,8 +366,39 @@ export function ResourceModal({
   );
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState("");
+  const [selectOptions, setSelectOptions] = useState({});
+  const [selectOptionsError, setSelectOptionsError] = useState("");
   const [inlineResource, setInlineResource] = useState(null);
   const [cepStatus, setCepStatus] = useState("");
+
+  useEffect(() => {
+    const fieldsWithRemoteOptions = def.fields.filter(
+      (field) => field.optionsUrl,
+    );
+    if (fieldsWithRemoteOptions.length === 0) return;
+
+    let active = true;
+    Promise.all(
+      fieldsWithRemoteOptions.map(async (field) => [
+        field.name,
+        await request(field.optionsUrl),
+      ]),
+    )
+      .then((options) => {
+        if (active) setSelectOptions(Object.fromEntries(options));
+      })
+      .catch((error) => {
+        if (active) {
+          setSelectOptionsError(
+            `Não foi possível carregar os estados: ${error.message}`,
+          );
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [def]);
   const set = (name, value) =>
     setForm((current) => ({ ...current, [name]: value }));
 
@@ -391,7 +420,11 @@ export function ResourceModal({
       }));
       setCepStatus("Endereço preenchido pelo CEP.");
     } catch (err) {
-      setCepStatus(err.message);
+      setCepStatus(
+        err.message?.includes("CEP não encontrado")
+          ? err.message
+          : "Não foi possível carregar o endereço pelo CEP. Verifique sua conexão ou preencha os campos manualmente.",
+      );
     }
   };
 
@@ -449,6 +482,8 @@ export function ResourceModal({
                   field={field}
                   record={record}
                   data={data}
+                  options={selectOptions[field.name] ?? field.options ?? []}
+                  optionsError={selectOptionsError}
                   value={form[field.name]}
                   onChange={(value) => set(field.name, value)}
                   onCreateReference={(target) => setInlineResource(target)}
@@ -465,7 +500,7 @@ export function ResourceModal({
                 />
               ))}
           </div>
-          <FormError>{localError}</FormError>
+          <FormError>{localError || selectOptionsError}</FormError>
           <div className="modal-actions">
             <button
               type="button"
@@ -506,12 +541,25 @@ function ResourceField({
   field,
   record,
   data,
+  options = [],
+  optionsError,
   value,
   onChange,
   onCreateReference,
   onLookupCep,
   cepStatus,
 }) {
+  const updateValue = (event) => {
+    const nextValue = event.target.value;
+    onChange(
+      field.mask === "cpf"
+        ? formatCpf(nextValue)
+        : field.mask === "cep"
+          ? formatCep(nextValue)
+          : nextValue,
+    );
+  };
+
   if (field.type === "ref") {
     const target = resourceDefs[field.resource];
     return (
@@ -561,13 +609,28 @@ function ResourceField({
         required={field.required}
         value={value || ""}
         onChange={(event) => onChange(event.target.value)}
+        disabled={Boolean(field.optionsUrl) && options.length === 0}
       >
-        <option value="">Selecione</option>
-        {[...new Set(field.options)].map((option, index) => (
-          <option value={option} key={`${option}-${index}`}>
-            {option}
-          </option>
-        ))}
+        <option value="">
+          {field.optionsUrl
+            ? optionsError
+              ? "Estados indisponíveis"
+              : "Carregando estados..."
+            : "Selecione"}
+        </option>
+        {options.map((option, index) => {
+          const optionValue =
+            typeof option === "string" ? option : (option.uf ?? option.value);
+          const optionLabel =
+            typeof option === "string"
+              ? option
+              : (option.nome ?? option.label ?? optionValue);
+          return (
+            <option value={optionValue} key={`${optionValue}-${index}`}>
+              {optionLabel}
+            </option>
+          );
+        })}
       </FieldSelect>
     );
   if (field.type === "checkbox")
@@ -586,6 +649,8 @@ function ResourceField({
       required={field.required && !(record && field.name === "senha")}
       type={field.type || "text"}
       maxLength={field.maxLength}
+      inputMode={field.inputMode}
+      pattern={field.pattern}
       step={field.step}
       min={field.type === "number" ? 0 : undefined}
       placeholder={
@@ -596,7 +661,7 @@ function ResourceField({
             : `Informe ${field.label.toLowerCase()}`
       }
       value={value ?? ""}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={updateValue}
       onBlur={onLookupCep ? () => onLookupCep(value) : undefined}
       autoComplete={field.name === "cep" ? "postal-code" : undefined}
       hint={cepStatus || (record ? field.editHint : undefined)}
