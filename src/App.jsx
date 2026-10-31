@@ -27,7 +27,8 @@ import ResourcePage, {
   ResourceModal,
 } from "./features/resources/ResourcePage";
 import SalesPage from "./features/sales/SalesPage";
-import { NewSaleModal, SaleDetailModal } from "./features/sales/SalesModals";
+import { NewSaleModal } from "./features/sales/SalesModals";
+import SaleWorkspace from "./features/sales/SaleWorkspace";
 
 const emptyData = {
   produtos: [],
@@ -323,9 +324,11 @@ export default function App() {
       <Toast toast={toast} clear={() => setToast(null)} />
       {modal?.type === "login" && (
         <LoginModal
-          data={data}
           onClose={() => setModal(null)}
           onLogin={saveEmployee}
+          onSignup={() =>
+            setModal({ type: "resource", resource: "funcionarios" })
+          }
           notify={notify}
         />
       )}
@@ -338,6 +341,7 @@ export default function App() {
           onClose={() => setModal(null)}
           notify={notify}
           refresh={refresh}
+          onCreated={modal.resource === "funcionarios" ? saveEmployee : undefined}
         />
       )}
       {modal?.type === "delete-resource" && (
@@ -360,7 +364,7 @@ export default function App() {
         />
       )}
       {modal?.type === "sale-detail" && (
-        <SaleDetailModal
+        <SaleWorkspace
           sale={modal.sale}
           data={data}
           onClose={() => setModal(null)}

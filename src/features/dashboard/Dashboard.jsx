@@ -1,9 +1,8 @@
+import { useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
   Banknote,
-  Boxes,
-  ChevronDown,
   Clock3,
   Package,
   Plus,
@@ -35,31 +34,82 @@ export default function Dashboard({
   const monthSales = data.vendas.filter(
     (sale) => sale.status === 1 && saleDate(sale.dataVenda) >= firstOfMonth,
   );
-  const monday = new Date(now);
-  monday.setHours(0, 0, 0, 0);
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  const weekDays = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + index);
-    return {
-      date,
-      label: ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"][date.getDay()],
-      amount: 0,
-    };
-  });
-  for (const sale of data.vendas.filter((item) => item.status === 1)) {
-    const when = saleDate(sale.dataVenda);
-    const index = when
-      ? Math.round(
-          (new Date(when.getFullYear(), when.getMonth(), when.getDate()) -
-            monday) /
-            86400000,
+  const [chartPeriod, setChartPeriod] = useState("month");
+  const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  sunday.setDate(sunday.getDate() - sunday.getDay());
+  const periods =
+    chartPeriod === "week"
+      ? ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"].map(
+          emptyPeriod,
         )
-      : -1;
-    if (index >= 0 && index < 7)
-      weekDays[index].amount += Number(sale.valorTotal || 0);
+      : chartPeriod === "year"
+        ? [
+            "JAN",
+            "FEV",
+            "MAR",
+            "ABR",
+            "MAI",
+            "JUN",
+            "JUL",
+            "AGO",
+            "SET",
+            "OUT",
+            "NOV",
+            "DEZ",
+          ].map(emptyPeriod)
+        : Array.from({ length: 4 }, (_, index) =>
+            emptyPeriod(`SEM ${index + 1}`),
+          );
+  for (const sale of data.vendas.filter((item) => [0, 1].includes(item.status))) {
+    const when = saleDate(sale.dataVenda);
+    let index = -1;
+    const isCurrentMonth =
+      when &&
+      when.getFullYear() === now.getFullYear() &&
+      when.getMonth() === now.getMonth();
+    const isCurrentYear = when && when.getFullYear() === now.getFullYear();
+    if (when && chartPeriod === "month" && isCurrentMonth) {
+      index = Math.min(3, Math.floor((when.getDate() - 1) / 7));
+    } else if (when && chartPeriod === "week") {
+      const saleDay = new Date(when.getFullYear(), when.getMonth(), when.getDate());
+      index = Math.round((saleDay - sunday) / 86400000);
+    } else if (when && chartPeriod === "year" && isCurrentYear) {
+      index = when.getMonth();
+    }
+    if (index >= 0 && index < periods.length) {
+      const key = sale.status === 1 ? "paid" : "open";
+      periods[index][key] += Number(sale.valorTotal || 0);
+    }
   }
-  const maxWeekAmount = Math.max(...weekDays.map((day) => day.amount), 1);
+  const maxWeekAmount = Math.max(
+    ...periods.flatMap((period) => [period.paid, period.open]),
+    1,
+  );
+  const paidPeriodTotal = periods.reduce((sum, period) => sum + period.paid, 0);
+  const periodDescription =
+    chartPeriod === "month"
+      ? "Vendas deste mês, agrupadas por semana"
+      : chartPeriod === "week"
+        ? "Vendas desta semana, de domingo a sábado"
+        : "Vendas deste ano, de janeiro a dezembro";
+  const periodSummary =
+    chartPeriod === "month"
+      ? "Recebido neste mês"
+      : chartPeriod === "week"
+        ? "Recebido nesta semana"
+        : "Recebido neste ano";
+  const shortcutCounts = {
+    products: loading
+      ? "—"
+      : `${data.produtos.length} ${
+          data.produtos.length === 1
+            ? "produto cadastrado"
+            : "produtos cadastrados"
+        }`,
+    sales: loading
+      ? "—"
+      : `${data.vendas.length} ${data.vendas.length === 1 ? "venda registrada" : "vendas registradas"}`,
+  };
   return (
     <>
       <PageHeading
@@ -164,27 +214,36 @@ export default function Dashboard({
             <div>
               <div className="eyebrow">ACOMPANHAMENTO</div>
               <h2>Movimento de vendas</h2>
-              <p>Vendas pagas nos últimos sete dias</p>
+              <p>{periodDescription}</p>
             </div>
-            <button className="select-button" onClick={() => go("vendas")}>
-              Esta semana <ChevronDown size={14} />
-            </button>
+            <select
+              className="select-button"
+              value={chartPeriod}
+              onChange={(event) => setChartPeriod(event.target.value)}
+              aria-label="Período do movimento de vendas"
+            >
+              <option value="month">Este mês · semanas 1–4</option>
+              <option value="week">Esta semana · dom–sáb</option>
+              <option value="year">Este ano · jan–dez</option>
+            </select>
           </div>
           <div className="chart-summary">
             <div>
               <strong>
-                {fmt(weekDays.reduce((sum, day) => sum + day.amount, 0))}
+                {fmt(paidPeriodTotal)}
               </strong>
               <span>
                 <span className="tiny-trend">
                   <ArrowUpRight size={13} />
                 </span>{" "}
-                Recebido nesta semana
+                {periodSummary}
               </span>
             </div>
             <div className="chart-legend">
               <span />
               <span>Vendas pagas</span>
+              <span className="open-legend-dot" />
+              <span>Vendas abertas</span>
             </div>
           </div>
           <div className="chart-area">
@@ -204,27 +263,39 @@ export default function Dashboard({
                 <i />
               </div>
               <div className="chart-columns">
-                {weekDays.map((day, index) => (
+                {periods.map((period, index) => (
                   <div
                     className="chart-column"
-                    key={`${day.label}-${index}`}
-                    title={`${day.label}: ${fmt(day.amount)}`}
+                    key={`${period.label}-${index}`}
+                    title={`${period.label}: pagas ${fmt(period.paid)}, abertas ${fmt(period.open)}`}
                   >
                     <div className="bar-pair">
                       <span
                         style={{
-                          height: `${day.amount ? Math.max(5, (day.amount / maxWeekAmount) * 100) : 0}%`,
+                          height: `${period.paid ? Math.max(5, (period.paid / maxWeekAmount) * 100) : 0}%`,
+                        }}
+                      />
+                      <span
+                        className="open-sale-bar"
+                        style={{
+                          height: `${period.open ? Math.max(5, (period.open / maxWeekAmount) * 100) : 0}%`,
                         }}
                       />
                     </div>
-                    <small>{day.label}</small>
+                    <small>{period.label}</small>
                   </div>
                 ))}
               </div>
             </div>
           </div>
           <div className="chart-caption">
-            <span>Segunda a domingo</span>
+            <span>
+              {chartPeriod === "month"
+                ? "Semanas 1 a 4"
+                : chartPeriod === "week"
+                  ? "Domingo a sábado"
+                  : "Janeiro a dezembro"}
+            </span>
             <span>
               <i className="caption-dot" /> Valores em reais
             </span>
@@ -243,7 +314,7 @@ export default function Dashboard({
             <Shortcut
               icon={ShoppingCart}
               title="Registrar uma venda"
-              description="Inicie um novo atendimento"
+              description={shortcutCounts.sales}
               onClick={() =>
                 activeEmployee
                   ? setModal({ type: "new-sale" })
@@ -253,19 +324,20 @@ export default function Dashboard({
             <Shortcut
               icon={Package}
               title="Adicionar produto"
-              description="Cadastre uma nova peça"
+              description={shortcutCounts.products}
               onClick={() => go("produtos")}
             />
             <Shortcut
               icon={Users}
               title="Ver clientes"
-              description={`${data.clientes.length} ${data.clientes.length === 1 ? "pessoa cadastrada" : "pessoas cadastradas"}`}
+              description={`${data.clientes.length} ${
+                data.clientes.length === 1
+                  ? "pessoa cadastrada"
+                  : "pessoas cadastradas"
+              }`}
               onClick={() => go("clientes")}
             />
           </div>
-          <button className="shortcut-footer" onClick={() => go("categorias")}>
-            Organizar catálogo <ArrowRight size={15} />
-          </button>
         </section>
       </div>
       <section className="panel table-panel recent-panel">
@@ -332,4 +404,8 @@ function Shortcut({ icon: Icon, title, description, onClick }) {
       <span className="shortcut-arrow">›</span>
     </button>
   );
+}
+
+function emptyPeriod(label) {
+  return { label, paid: 0, open: 0 };
 }
