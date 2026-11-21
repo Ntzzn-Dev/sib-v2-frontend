@@ -62,6 +62,8 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [modal, setModal] = useState(null);
   const [activeEmployee, setActiveEmployee] = useState(null);
+  const isAdmin = activeEmployee?.perfil === 0;
+  const attendantResources = ["produtos", "clientes", "enderecos"];
 
   const notify = useCallback((message, type = "success") => {
     setToast({ message, type });
@@ -94,6 +96,12 @@ export default function App() {
   }, [loadAll]);
 
   const navigate = (target) => {
+    if (resourceDefs[target] && !isAdmin && !attendantResources.includes(target)) {
+      setPage("overview");
+      setQuery("");
+      setError("");
+      return;
+    }
     setPage(target);
     setQuery("");
     setError("");
@@ -103,6 +111,9 @@ export default function App() {
 
   const saveEmployee = (employee) => {
     setActiveEmployee(employee);
+    setPage("overview");
+    setQuery("");
+    setError("");
   };
 
   const signOut = async () => {
@@ -130,14 +141,14 @@ export default function App() {
   const operationsNavigation = [
     { id: "produtos", label: "Produtos", icon: Shirt },
     { id: "clientes", label: "Clientes", icon: Users },
-    { id: "funcionarios", label: "Funcionários", icon: UserRound },
+    { id: "enderecos", label: "Endereços", icon: ClipboardList },
   ];
 
   const settingsNavigation = [
+    { id: "funcionarios", label: "Funcionários", icon: UserRound },
     { id: "categorias", label: "Categorias", icon: Boxes },
     { id: "marcas", label: "Marcas", icon: Tag },
     { id: "metodos", label: "Pagamentos", icon: CreditCard },
-    { id: "enderecos", label: "Endereços", icon: ClipboardList },
   ];
 
   return (
@@ -173,13 +184,13 @@ export default function App() {
           navigate={navigate}
           spaced
         />
-        <NavigationGroup
+        {isAdmin && <NavigationGroup
           title="CONFIGURAÇÃO"
           items={settingsNavigation}
           page={page}
           navigate={navigate}
           spaced
-        />
+        />}
 
         <div className="sidebar-bottom">
           <div className="side-tip">
@@ -199,7 +210,9 @@ export default function App() {
             <span className="profile-copy">
               <b>{activeEmployee?.nomePessoa || "Acessar sistema"}</b>
               <small>
-                {activeEmployee ? "Funcionário conectado" : "Faça seu login"}
+                {activeEmployee
+                  ? isAdmin ? "Administrador" : "Atendente"
+                  : "Faça seu login"}
               </small>
             </span>
             {activeEmployee ? (
@@ -306,7 +319,7 @@ export default function App() {
               activeEmployee={activeEmployee}
             />
           )}
-          {resourceDefs[page] && (
+          {resourceDefs[page] && (isAdmin || attendantResources.includes(page)) && (
             <ResourcePage
               resource={page}
               data={data}
@@ -316,6 +329,8 @@ export default function App() {
               notify={notify}
               refresh={refresh}
               loading={loading}
+              canManage={isAdmin}
+              canCreate={isAdmin || (!!activeEmployee && ["clientes", "enderecos"].includes(page))}
             />
           )}
         </div>
@@ -329,10 +344,11 @@ export default function App() {
           onSignup={() =>
             setModal({ type: "resource", resource: "funcionarios" })
           }
+          allowSignup={data.funcionarios.length === 0}
           notify={notify}
         />
       )}
-      {modal?.type === "resource" && (
+      {modal?.type === "resource" && (isAdmin || (!!activeEmployee && ["clientes", "enderecos"].includes(modal.resource)) || (data.funcionarios.length === 0 && modal.resource === "funcionarios")) && (
         <ResourceModal
           key={`${modal.resource}-${modal.record?.[resourceDefs[modal.resource].id] ?? "new"}`}
           resource={modal.resource}
@@ -341,10 +357,10 @@ export default function App() {
           onClose={() => setModal(null)}
           notify={notify}
           refresh={refresh}
-          onCreated={modal.resource === "funcionarios" ? saveEmployee : undefined}
+          onCreated={modal.resource === "funcionarios" && data.funcionarios.length === 0 ? saveEmployee : undefined}
         />
       )}
-      {modal?.type === "delete-resource" && (
+      {modal?.type === "delete-resource" && isAdmin && (
         <DeleteResourceModal
           resource={modal.resource}
           record={modal.record}

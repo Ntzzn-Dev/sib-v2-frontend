@@ -33,6 +33,8 @@ export default function ResourcePage({
   setModal,
   refresh,
   loading,
+  canManage,
+  canCreate,
 }) {
   const def = resourceDefs[resource];
   const records = data[resource] || [];
@@ -53,15 +55,17 @@ export default function ResourcePage({
             <em>.</em>
           </>
         }
-        description={`Gerencie ${def.label.toLowerCase()} e mantenha as informações do sistema atualizadas.`}
-        action={
+        description={canManage
+          ? `Gerencie ${def.label.toLowerCase()} e mantenha as informações do sistema atualizadas.`
+          : `Consulte ${def.label.toLowerCase()}${canCreate ? " e cadastre novos registros" : " disponíveis"}.`}
+        action={canCreate ? (
           <button
             className="button button-primary"
             onClick={() => setModal({ type: "resource", resource })}
           >
             <Plus size={19} /> Novo {def.singular}
           </button>
-        }
+        ) : undefined}
       />
       <div className="resource-summary">
         <span className="resource-icon">
@@ -120,7 +124,7 @@ export default function ResourcePage({
                 : "Adicione seu primeiro registro para começar."
             }
             action={
-              !query && (
+              !query && canCreate && (
                 <button
                   className="button button-primary button-small"
                   onClick={() => setModal({ type: "resource", resource })}
@@ -138,7 +142,7 @@ export default function ResourcePage({
                   {def.columns.map(([label]) => (
                     <th key={label}>{label}</th>
                   ))}
-                  <th className="action-col">AÇÕES</th>
+                  {canManage && <th className="action-col">AÇÕES</th>}
                 </tr>
               </thead>
               <tbody>
@@ -160,6 +164,8 @@ export default function ResourcePage({
                               boolValue(item, path) ? "active" : "inactive"
                             }
                           />
+                        ) : format === "profile" ? (
+                          read(item, path) === 0 ? "Administrador" : "Atendente"
                         ) : (
                           <span
                             className={
@@ -178,7 +184,7 @@ export default function ResourcePage({
                         )}
                       </td>
                     ))}
-                    <td className="action-cell">
+                    {canManage && <td className="action-cell">
                       <button
                         className="row-action"
                         title="Editar"
@@ -201,7 +207,7 @@ export default function ResourcePage({
                       >
                         <Trash2 size={18} />
                       </button>
-                    </td>
+                    </td>}
                   </tr>
                 ))}
               </tbody>
@@ -214,6 +220,7 @@ export default function ResourcePage({
                 key={item[def.id]}
                 item={item}
                 def={def}
+                canManage={canManage}
                 onEdit={() =>
                   setModal({ type: "resource", resource, record: item })
                 }
@@ -246,7 +253,7 @@ export default function ResourcePage({
   );
 }
 
-function ResourceCard({ item, def, onEdit, onDelete }) {
+function ResourceCard({ item, def, canManage, onEdit, onDelete }) {
   const Icon = def.icon;
   return (
     <article className="resource-card">
@@ -263,14 +270,14 @@ function ResourceCard({ item, def, onEdit, onDelete }) {
       </p>
       <div className="resource-card-foot">
         <span>#{item[def.id]}</span>
-        <div>
+        {canManage && <div>
           <button className="row-action" onClick={onEdit}>
             <Pencil size={17} />
           </button>
           <button className="row-action danger-action" onClick={onDelete}>
             <Trash2 size={17} />
           </button>
-        </div>
+        </div>}
       </div>
     </article>
   );
@@ -444,6 +451,8 @@ export function ResourceModal({
           : null;
       if (field.type === "number")
         body[field.name] = Number(body[field.name] || 0);
+      if (field.name === "perfil")
+        body[field.name] = Number(body[field.name]);
     }
     try {
       const id = record?.[def.id];
@@ -476,6 +485,7 @@ export function ResourceModal({
           <div className="form-grid">
             {def.fields
               .filter((field) => !(record && field.createOnly))
+              .filter((field) => !(resource === "funcionarios" && field.name === "perfil" && data.funcionarios.length === 0))
               .map((field) => (
                 <ResourceField
                   key={field.name}
@@ -607,7 +617,7 @@ function ResourceField({
       <FieldSelect
         label={field.label}
         required={field.required}
-        value={value || ""}
+        value={value ?? ""}
         onChange={(event) => onChange(event.target.value)}
         disabled={Boolean(field.optionsUrl) && options.length === 0}
       >
@@ -646,7 +656,7 @@ function ResourceField({
   return (
     <FieldInput
       label={field.label}
-      required={field.required && !(record && field.name === "senha")}
+      required={field.required}
       type={field.type || "text"}
       maxLength={field.maxLength}
       inputMode={field.inputMode}
@@ -655,7 +665,7 @@ function ResourceField({
       min={field.type === "number" ? 0 : undefined}
       placeholder={
         record && field.name === "senha"
-          ? "••••••••"
+          ? "Nova senha"
           : field.type === "number"
             ? "0,00"
             : `Informe ${field.label.toLowerCase()}`

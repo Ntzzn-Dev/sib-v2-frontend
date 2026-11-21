@@ -143,6 +143,7 @@ export const resourceDefs = {
       ["CPF", "cpfPessoa"],
       ["Telefone", "telPessoa"],
       ["Salário", "salarioFunc", "money"],
+      ["Perfil", "perfil", "profile"],
     ],
     fields: [
       {
@@ -169,7 +170,18 @@ export const resourceDefs = {
         label: "Senha",
         type: "password",
         required: true,
-        editHint: "Deixe em branco para manter a senha atual.",
+        editHint: "Informe a senha novamente ao salvar alterações.",
+      },
+      {
+        name: "perfil",
+        label: "Perfil de acesso",
+        type: "select",
+        options: [
+          { value: 0, label: "Administrador" },
+          { value: 1, label: "Atendente" },
+        ],
+        createDefault: 1,
+        required: true,
       },
       {
         name: "endPessoa",

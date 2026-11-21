@@ -4,7 +4,7 @@ import { request, jsonRequest } from "../../api/client";
 import { FieldInput, FormError, Modal } from "../../components/ui";
 import { formatCpf } from "../../lib/format";
 
-export default function LoginModal({ onClose, onLogin, onSignup, notify }) {
+export default function LoginModal({ onClose, onLogin, onSignup, allowSignup, notify }) {
   const [cpf, setCpf] = useState("");
   const [senha, setSenha] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,7 +58,7 @@ export default function LoginModal({ onClose, onLogin, onSignup, notify }) {
         <FormError>{error}</FormError>
         <div className="login-info">
           <BadgeCheck size={17} />
-          <span>Use o CPF e a senha cadastrados para entrar.</span>
+          <span>Use o CPF e a senha cadastrados para entrar. Entre em contato com o administrador caso ainda não tenha um cadastro.</span>
         </div>
         <div className="modal-actions">
           <button type="button" className="button button-ghost" onClick={onClose}>
@@ -69,12 +69,12 @@ export default function LoginModal({ onClose, onLogin, onSignup, notify }) {
             {busy ? "Validando…" : "Entrar no sistema"}
           </button>
         </div>
-        <div className="login-switch">
-          Ainda não tem cadastro?{" "}
+        {allowSignup && <div className="login-switch">
+          Primeiro acesso ao sistema?{" "}
           <button type="button" onClick={onSignup}>
-            Criar conta
+            Cadastrar administrador
           </button>
-        </div>
+        </div>}
       </form>
     </Modal>
   );
