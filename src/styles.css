@@ -466,6 +466,56 @@ select:focus-visible {
   gap: 13px;
   margin-bottom: 16px;
 }
+.email-settings-panel {
+  max-width: 860px;
+  overflow: hidden;
+}
+.email-settings-intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 22px 0;
+}
+.email-settings-intro > span {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: #637754;
+  background: #edf1e9;
+  border-radius: 9px;
+}
+.email-settings-intro strong {
+  color: #414239;
+  font-size: 14px;
+}
+.email-settings-intro p {
+  margin: 4px 0 0;
+  color: #92938a;
+  font-size: 12px;
+}
+.email-settings-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 17px;
+  padding: 11px 12px;
+  color: #77806e;
+  background: #f4f6f1;
+  border: 1px solid #e8ece2;
+  border-radius: 7px;
+  font-size: 11.8px;
+  line-height: 1.5;
+}
+.email-settings-note svg {
+  flex: none;
+  margin-top: 1px;
+}
+.login-forgot {
+  margin: 8px 0 0 auto;
+  padding: 0;
+}
 .metric-card {
   min-height: 150px;
   background: #fff;

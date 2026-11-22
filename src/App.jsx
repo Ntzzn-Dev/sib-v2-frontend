@@ -8,6 +8,7 @@ import {
   Heart,
   LayoutDashboard,
   LogOut,
+  Mail,
   RefreshCw,
   Shirt,
   ShoppingBag,
@@ -23,6 +24,7 @@ import { Toast } from "./components/ui";
 import Dashboard from "./features/dashboard/Dashboard";
 import LoginModal from "./features/auth/LoginModal";
 import MyProfileModal from "./features/auth/MyProfileModal";
+import EmailSettingsPage from "./features/auth/EmailSettingsPage";
 import ResourcePage, {
   DeleteResourceModal,
   ResourceModal,
@@ -100,6 +102,10 @@ export default function App() {
   }, [loadAll]);
 
   const navigate = (target) => {
+    if (target === "email-config" && !isAdmin) {
+      setPage("overview");
+      return;
+    }
     if (resourceDefs[target] && !isAdmin && !attendantResources.includes(target)) {
       setPage("overview");
       setQuery("");
@@ -166,6 +172,7 @@ export default function App() {
     { id: "categorias", label: "Categorias", icon: Boxes },
     { id: "marcas", label: "Marcas", icon: Tag },
     { id: "metodos", label: "Pagamentos", icon: CreditCard },
+    { id: "email-config", label: "E-mail remetente", icon: Mail },
   ];
 
   return (
@@ -250,6 +257,8 @@ export default function App() {
                 ? "Painel"
                 : page === "vendas"
                   ? "Vendas"
+                  : page === "email-config"
+                    ? "E-mail remetente"
                   : resourceDefs[page]?.label}
             </strong>
           </div>
@@ -329,6 +338,7 @@ export default function App() {
               activeEmployee={activeEmployee}
             />
           )}
+          {page === "email-config" && isAdmin && <EmailSettingsPage notify={notify} />}
           {resourceDefs[page] && (isAdmin || attendantResources.includes(page)) && (
             <ResourcePage
               resource={page}
