@@ -31,11 +31,38 @@ export const formatCep = (value = "") => {
     : digits;
 };
 export const saleDate = (value = "") => {
-  const [date, time = "00:00"] = value.split(" ");
-  const [day, month, year] = (date || "").split("/").map(Number);
-  const [hour, minute] = time.split(":").map(Number);
-  return day && month && year
-    ? new Date(2000 + year, month - 1, day, hour || 0, minute || 0)
+  if (!value) return null;
+
+  const text = String(value).trim();
+  const iso = text.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.(\d+))?)?)?$/,
+  );
+  if (iso) {
+    return new Date(
+      Number(iso[1]),
+      Number(iso[2]) - 1,
+      Number(iso[3]),
+      Number(iso[4] || 0),
+      Number(iso[5] || 0),
+      Number(iso[6] || 0),
+      Number((iso[7] || "").slice(0, 3).padEnd(3, "0")),
+    );
+  }
+
+  const [date, time = "00:00"] = text.split(/\s+/);
+  const partes = date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  if (!partes) return null;
+
+  const [, diaTexto, mesTexto, anoTexto] = partes;
+  const [hora = 0, minuto = 0, segundo = 0] = time.split(":").map(Number);
+  const dia = Number(diaTexto);
+  const mes = Number(mesTexto);
+  const ano = anoTexto.length === 2 ? 2000 + Number(anoTexto) : Number(anoTexto);
+  const resultado = new Date(ano, mes - 1, dia, hora, minuto, segundo);
+  return resultado.getFullYear() === ano &&
+    resultado.getMonth() === mes - 1 &&
+    resultado.getDate() === dia
+    ? resultado
     : null;
 };
 export const dateLabel = new Intl.DateTimeFormat("pt-BR", {
