@@ -2,10 +2,9 @@ import { useState } from "react";
 import { BadgeCheck, LogIn } from "lucide-react";
 import { request, jsonRequest } from "../../api/client";
 import { FieldInput, FormError, Modal } from "../../components/ui";
-import { formatCpf } from "../../lib/format";
 
 export default function LoginModal({ onClose, onLogin, onSignup, allowSignup, notify }) {
-  const [cpf, setCpf] = useState("");
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -17,7 +16,7 @@ export default function LoginModal({ onClose, onLogin, onSignup, allowSignup, no
     try {
       const user = await request(
         "/auth/login",
-        jsonRequest("POST", { cpf: cpf.replace(/\D/g, ""), senha }),
+        jsonRequest("POST", { email: email.trim(), senha }),
       );
       onLogin(user);
       notify(`Bem-vindo(a), ${user.nomePessoa.split(" ")[0]}!`);
@@ -37,14 +36,12 @@ export default function LoginModal({ onClose, onLogin, onSignup, allowSignup, no
     >
       <form className="form-body" onSubmit={submit}>
         <FieldInput
-          label="CPF"
+          label="E-mail"
           required
-          inputMode="numeric"
-          maxLength={14}
-          pattern="[0-9]{3}\.[0-9]{3}\.[0-9]{3}-[0-9]{2}"
-          value={cpf}
-          onChange={(event) => setCpf(formatCpf(event.target.value))}
-          placeholder="000.000.000-00"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          placeholder="voce@exemplo.com"
           autoFocus
         />
         <FieldInput
@@ -58,7 +55,7 @@ export default function LoginModal({ onClose, onLogin, onSignup, allowSignup, no
         <FormError>{error}</FormError>
         <div className="login-info">
           <BadgeCheck size={17} />
-          <span>Use o CPF e a senha cadastrados para entrar. Entre em contato com o administrador caso ainda não tenha um cadastro.</span>
+          <span>Use o e-mail cadastrado para acessar o sistema.</span>
         </div>
         <div className="modal-actions">
           <button type="button" className="button button-ghost" onClick={onClose}>

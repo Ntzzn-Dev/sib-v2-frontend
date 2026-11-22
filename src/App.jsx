@@ -22,6 +22,7 @@ import { initials } from "./lib/format";
 import { Toast } from "./components/ui";
 import Dashboard from "./features/dashboard/Dashboard";
 import LoginModal from "./features/auth/LoginModal";
+import MyProfileModal from "./features/auth/MyProfileModal";
 import ResourcePage, {
   DeleteResourceModal,
   ResourceModal,
@@ -64,6 +65,9 @@ export default function App() {
   const [activeEmployee, setActiveEmployee] = useState(null);
   const isAdmin = activeEmployee?.perfil === 0;
   const attendantResources = ["produtos", "clientes", "enderecos"];
+  const loggedEmployeeRecord = data.funcionarios.find(
+    (employee) => employee.cpfPessoa?.replace(/\D/g, "") === activeEmployee?.cpfPessoa?.replace(/\D/g, ""),
+  );
 
   const notify = useCallback((message, type = "success") => {
     setToast({ message, type });
@@ -116,6 +120,15 @@ export default function App() {
     setError("");
   };
 
+  const syncActiveEmployee = (employee) => {
+    setActiveEmployee((current) => {
+      if (!current || current.cpfPessoa?.replace(/\D/g, "") !== employee.cpfPessoa?.replace(/\D/g, "")) {
+        return current;
+      }
+      return { ...current, ...employee };
+    });
+  };
+
   const signOut = async () => {
     try {
       await request("/auth/logout", { method: "POST" });
@@ -123,6 +136,10 @@ export default function App() {
       // Encerra também a sessão visual quando a API estiver indisponível.
     }
     setActiveEmployee(null);
+    setPage("overview");
+    setQuery("");
+    setStatusFilter("all");
+    setError("");
     notify("Sessão encerrada.");
   };
 
@@ -130,15 +147,15 @@ export default function App() {
 
   const mainNavigation = [
     { id: "overview", label: "Painel", icon: LayoutDashboard },
+  ];
+
+  const operationsNavigation = [
     {
       id: "vendas",
       label: "Vendas",
       icon: ShoppingBag,
       badge: data.vendas.filter((sale) => sale.status === 0).length,
     },
-  ];
-
-  const operationsNavigation = [
     { id: "produtos", label: "Produtos", icon: Shirt },
     { id: "clientes", label: "Clientes", icon: Users },
     { id: "enderecos", label: "Endereços", icon: ClipboardList },
@@ -177,13 +194,13 @@ export default function App() {
           page={page}
           navigate={navigate}
         />
-        <NavigationGroup
+        {activeEmployee && <NavigationGroup
           title="OPERAÇÃO"
           items={operationsNavigation}
           page={page}
           navigate={navigate}
           spaced
-        />
+        />}
         {isAdmin && <NavigationGroup
           title="CONFIGURAÇÃO"
           items={settingsNavigation}
@@ -202,7 +219,7 @@ export default function App() {
           </div>
           <button
             className="profile-mini"
-            onClick={() => setModal({ type: "login" })}
+            onClick={() => setModal({ type: activeEmployee ? "my-profile" : "login" })}
           >
             <span className="avatar">
               {initials(activeEmployee?.nomePessoa)}
@@ -215,18 +232,11 @@ export default function App() {
                   : "Faça seu login"}
               </small>
             </span>
-            {activeEmployee ? (
-              <LogOut
-                size={18}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  signOut();
-                }}
-              />
-            ) : (
-              <ChevronRight size={18} />
-            )}
+            <ChevronRight size={18} />
           </button>
+          {activeEmployee && <button className="signout-button" onClick={signOut}>
+            <LogOut size={17} /> Sair da conta
+          </button>}
         </div>
       </aside>
 
@@ -270,7 +280,7 @@ export default function App() {
             <button
               className="avatar avatar-top"
               title={activeEmployee?.nomePessoa || "Entrar"}
-              onClick={() => setModal({ type: "login" })}
+              onClick={() => setModal({ type: activeEmployee ? "my-profile" : "login" })}
             >
               {initials(activeEmployee?.nomePessoa)}
             </button>
@@ -348,6 +358,18 @@ export default function App() {
           notify={notify}
         />
       )}
+      {modal?.type === "my-profile" && activeEmployee && (
+        <MyProfileModal
+          onClose={() => setModal(null)}
+          onSaved={async (profile) => {
+            syncActiveEmployee(profile);
+            await refresh();
+          }}
+          fallbackAddress={loggedEmployeeRecord?.endPessoa}
+          onSignOut={async () => { setModal(null); await signOut(); }}
+          notify={notify}
+        />
+      )}
       {modal?.type === "resource" && (isAdmin || (!!activeEmployee && ["clientes", "enderecos"].includes(modal.resource)) || (data.funcionarios.length === 0 && modal.resource === "funcionarios")) && (
         <ResourceModal
           key={`${modal.resource}-${modal.record?.[resourceDefs[modal.resource].id] ?? "new"}`}
@@ -357,6 +379,7 @@ export default function App() {
           onClose={() => setModal(null)}
           notify={notify}
           refresh={refresh}
+          onSaved={modal.resource === "funcionarios" ? syncActiveEmployee : undefined}
           onCreated={modal.resource === "funcionarios" && data.funcionarios.length === 0 ? saveEmployee : undefined}
         />
       )}

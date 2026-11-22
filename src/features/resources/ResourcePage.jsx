@@ -351,6 +351,7 @@ export function ResourceModal({
   notify,
   refresh,
   onCreated,
+  onSaved,
   nested = false,
 }) {
   const def = resourceDefs[resource];
@@ -461,6 +462,7 @@ export function ResourceModal({
         jsonRequest(id ? "PUT" : "POST", body),
       );
       if (!id) onCreated?.(saved);
+      else onSaved?.(saved);
       notify(
         `${def.singular[0].toUpperCase()}${def.singular.slice(1)} ${id ? "atualizado" : "cadastrado"} com sucesso.`,
       );
@@ -656,7 +658,7 @@ function ResourceField({
   return (
     <FieldInput
       label={field.label}
-      required={field.required}
+      required={field.required && !(record && field.optionalOnEdit)}
       type={field.type || "text"}
       maxLength={field.maxLength}
       inputMode={field.inputMode}

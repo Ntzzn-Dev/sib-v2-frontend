@@ -141,6 +141,7 @@ export const resourceDefs = {
     columns: [
       ["Funcionário", "nomePessoa"],
       ["CPF", "cpfPessoa"],
+      ["E-mail", "email"],
       ["Telefone", "telPessoa"],
       ["Salário", "salarioFunc", "money"],
       ["Perfil", "perfil", "profile"],
@@ -157,6 +158,7 @@ export const resourceDefs = {
         pattern: "[0-9]{3}\\.[0-9]{3}\\.[0-9]{3}-[0-9]{2}",
       },
       { name: "nomePessoa", label: "Nome completo", required: true },
+      { name: "email", label: "E-mail", type: "email", required: true },
       { name: "telPessoa", label: "Telefone" },
       {
         name: "salarioFunc",
@@ -170,7 +172,8 @@ export const resourceDefs = {
         label: "Senha",
         type: "password",
         required: true,
-        editHint: "Informe a senha novamente ao salvar alterações.",
+        optionalOnEdit: true,
+        editHint: "Deixe em branco para manter a senha atual.",
       },
       {
         name: "perfil",

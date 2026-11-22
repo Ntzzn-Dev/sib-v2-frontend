@@ -203,6 +203,34 @@ select:focus-visible {
 .profile-mini > svg {
   color: #a2a39b;
 }
+.signout-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #6b6258;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.signout-button:hover {
+  background: #f7f6f1;
+}
+.signout-profile-button {
+  margin-right: auto;
+}
+.form-section-title {
+  margin: 20px 0 0;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 650;
+}
 .main-area {
   margin-left: 248px;
   min-height: 100vh;
