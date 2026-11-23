@@ -35,14 +35,38 @@ export default function ResourcePage({
   loading,
   canManage,
   canCreate,
+  notify,
 }) {
   const def = resourceDefs[resource];
   const records = data[resource] || [];
-  const filtered = records.filter(
-    (record) =>
-      !query ||
-      JSON.stringify(record).toLowerCase().includes(query.toLowerCase()),
+  const [filtersByResource, setFiltersByResource] = useState({});
+  const activeFilter = filtersByResource[resource] || "all";
+  const hasActivationStatus = records.some(
+    (record) => typeof record.ativo === "boolean" || typeof record.activeMetodoPag === "boolean",
   );
+  const filtered = records.filter(
+    (record) => {
+      const active = typeof record.ativo === "boolean"
+        ? record.ativo
+        : record.activeMetodoPag;
+      const matchesStatus = activeFilter === "all"
+        || (activeFilter === "active" && active)
+        || (activeFilter === "inactive" && !active);
+      const matchesSearch = !query
+        || JSON.stringify(record).toLowerCase().includes(query.toLowerCase());
+      return matchesStatus && matchesSearch;
+    },
+  );
+  const isInactive = (item) => item.ativo === false;
+  const restore = async (item) => {
+    try {
+      await request(`${def.route}/${encodeURIComponent(item[def.id])}/reativar`, { method: "POST" });
+      await refresh();
+      notify(`${def.singular[0].toUpperCase()}${def.singular.slice(1)} reativado com sucesso.`);
+    } catch (error) {
+      notify(error.message, "error");
+    }
+  };
   const [view, setView] = useState("table");
   const Icon = def.icon;
   return (
@@ -94,6 +118,20 @@ export default function ResourcePage({
             />
           </div>
           <div className="toolbar-actions">
+            {canManage && hasActivationStatus && <select
+              className="select-button"
+              aria-label="Filtrar situação do cadastro"
+              title="Filtrar situação do cadastro"
+              value={activeFilter}
+              onChange={(event) => setFiltersByResource((current) => ({
+                ...current,
+                [resource]: event.target.value,
+              }))}
+            >
+              <option value="all">Todos</option>
+              <option value="active">Ativos</option>
+              <option value="inactive">Inativos</option>
+            </select>}
             <button
               className="select-button"
               onClick={() => setView(view === "table" ? "grid" : "table")}
@@ -185,6 +223,11 @@ export default function ResourcePage({
                       </td>
                     ))}
                     {canManage && <td className="action-cell">
+                      {isInactive(item) ? <button
+                        className="row-action"
+                        title="Reativar"
+                        onClick={() => restore(item)}
+                      ><RefreshCw size={18} /></button> : <>
                       <button
                         className="row-action"
                         title="Editar"
@@ -196,7 +239,7 @@ export default function ResourcePage({
                       </button>
                       <button
                         className="row-action danger-action"
-                        title="Excluir"
+                        title="Desativar"
                         onClick={() =>
                           setModal({
                             type: "delete-resource",
@@ -207,6 +250,7 @@ export default function ResourcePage({
                       >
                         <Trash2 size={18} />
                       </button>
+                      </>}
                     </td>}
                   </tr>
                 ))}
@@ -221,6 +265,8 @@ export default function ResourcePage({
                 item={item}
                 def={def}
                 canManage={canManage}
+                inactive={isInactive(item)}
+                onRestore={() => restore(item)}
                 onEdit={() =>
                   setModal({ type: "resource", resource, record: item })
                 }
@@ -253,7 +299,7 @@ export default function ResourcePage({
   );
 }
 
-function ResourceCard({ item, def, canManage, onEdit, onDelete }) {
+function ResourceCard({ item, def, canManage, inactive, onEdit, onDelete, onRestore }) {
   const Icon = def.icon;
   return (
     <article className="resource-card">
@@ -268,15 +314,22 @@ function ResourceCard({ item, def, canManage, onEdit, onDelete }) {
           .filter(Boolean)
           .join(" · ") || def.label}
       </p>
+      {typeof item.ativo === "boolean" && (
+        <StatusBadge status={item.ativo ? "active" : "inactive"} />
+      )}
       <div className="resource-card-foot">
         <span>#{item[def.id]}</span>
         {canManage && <div>
+          {inactive ? <button className="row-action" title="Reativar" onClick={onRestore}>
+            <RefreshCw size={17} />
+          </button> : <>
           <button className="row-action" onClick={onEdit}>
             <Pencil size={17} />
           </button>
           <button className="row-action danger-action" onClick={onDelete}>
             <Trash2 size={17} />
           </button>
+          </>}
         </div>}
       </div>
     </article>
@@ -313,8 +366,8 @@ export function DeleteResourceModal({
   };
   return (
     <Modal
-      title={`Remover ${def.singular}?`}
-      subtitle="Esta ação não pode ser desfeita."
+      title={`Desativar ${def.singular}?`}
+      subtitle="O registro será mantido no banco e poderá ser reativado pelo administrador."
       onClose={onClose}
     >
       <div className="delete-body">
@@ -322,20 +375,20 @@ export function DeleteResourceModal({
           <Trash2 size={23} />
         </span>
         <p>
-          Tem certeza de que deseja remover <b>{def.title(record)}</b>? Os dados
-          vinculados podem impedir a exclusão.
+          Tem certeza de que deseja desativar <b>{def.title(record)}</b>? O cadastro
+          deixará de aparecer nas operações do sistema, mas seu histórico será preservado.
         </p>
         <FormError>{error}</FormError>
         <div className="modal-actions">
           <button className="button button-ghost" onClick={onClose}>
-            Manter registro
+            Manter ativo
           </button>
           <button
             className="button button-danger"
             disabled={busy}
             onClick={remove}
           >
-            {busy ? "Removendo…" : "Remover registro"}
+            {busy ? "Desativando…" : "Desativar registro"}
           </button>
         </div>
       </div>
@@ -592,7 +645,7 @@ function ResourceField({
                 ? "Nenhum endereço"
                 : `Selecione ${field.label.toLowerCase()}`}
             </option>
-            {(data[field.resource] || []).map((item) => (
+            {(data[field.resource] || []).filter((item) => item.ativo !== false).map((item) => (
               <option key={item[field.id]} value={item[field.id]}>
                 {item[field.text]}
                 {field.resource === "enderecos"

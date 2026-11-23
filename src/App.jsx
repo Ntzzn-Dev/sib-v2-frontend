@@ -99,7 +99,9 @@ export default function App() {
     try {
       const paths = employee.perfil === 0 ? loadPaths : attendantLoadPaths;
       const responses = await Promise.all(
-        paths.map(([, path]) => request(path)),
+        paths.map(([, path]) => request(
+          employee.perfil === 0 ? `${path}?incluirInativos=true` : path,
+        )),
       );
       setData(
         { ...emptyData, ...Object.fromEntries(paths.map(([key], index) => [key, responses[index]])) },

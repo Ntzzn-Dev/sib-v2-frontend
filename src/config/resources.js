@@ -23,6 +23,7 @@ export const resourceDefs = {
       ["Tamanho", "tamanhoProd"],
       ["Preço", "precoProd", "money"],
       ["Status", "selled", "sold"],
+      ["Cadastro", "ativo", "active"],
     ],
     fields: [
       { name: "descProd", label: "Descrição", required: true },
@@ -106,6 +107,7 @@ export const resourceDefs = {
       ["CPF", "cpfPessoa"],
       ["Telefone", "telPessoa"],
       ["Cidade", "endPessoa.cidade"],
+      ["Cadastro", "ativo", "active"],
     ],
     fields: [
       {
@@ -145,6 +147,7 @@ export const resourceDefs = {
       ["Telefone", "telPessoa"],
       ["Salário", "salarioFunc", "money"],
       ["Perfil", "perfil", "profile"],
+      ["Cadastro", "ativo", "active"],
     ],
     fields: [
       {
@@ -204,7 +207,7 @@ export const resourceDefs = {
     route: "/categorias",
     id: "codCat",
     title: (x) => x.nomeCat,
-    columns: [["Categoria", "nomeCat"]],
+    columns: [["Categoria", "nomeCat"], ["Cadastro", "ativo", "active"]],
     fields: [{ name: "nomeCat", label: "Nome da categoria", required: true }],
   },
   marcas: {
@@ -214,7 +217,7 @@ export const resourceDefs = {
     route: "/marcas",
     id: "codMarca",
     title: (x) => x.nomeMarca,
-    columns: [["Marca", "nomeMarca"]],
+    columns: [["Marca", "nomeMarca"], ["Cadastro", "ativo", "active"]],
     fields: [{ name: "nomeMarca", label: "Nome da marca", required: true }],
   },
   metodos: {
@@ -251,6 +254,7 @@ export const resourceDefs = {
       ["Cidade", "cidade"],
       ["UF", "uf"],
       ["CEP", "cep"],
+      ["Cadastro", "ativo", "active"],
     ],
     fields: [
       {
