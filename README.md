@@ -1,47 +1,26 @@
-# SIB v2 · Frontend
+# SIB v2 — Frontend
 
-Frontend do sistema de gestão de brechó, feito com React e Vite e conectado à API REST do projeto `sib-v2`.
+Interface web do Sistema Integrado de Brechó, feita com React e Vite. O frontend se conecta à API Spring Boot do projeto [`sib-v2`](../sib-v2/README.md).
 
-## Iniciar localmente
+## Requisitos
 
-Em um terminal, inicie o backend:
+- Node.js e npm.
+- API do backend em execução e banco SQL Server preparado.
 
-```powershell
-cd sib-v2
-.\mvnw.cmd spring-boot:run
-```
+## Executar localmente
 
-Em outro terminal, inicie o frontend:
-
-```powershell
-cd sib-v2-frontend
-npm install
+```bash
+npm ci
 npm run dev
 ```
 
-Abra o endereço informado pelo Vite (por padrão `http://localhost:5173`). A API padrão é `http://localhost:8080/api`.
+Abra `http://localhost:5173`. A URL padrão da API é `http://localhost:8080/api`. Se o backend estiver em outro endereço, defina `VITE_API_URL` com a URL completa da API, incluindo `/api`, antes de iniciar o Vite. O backend também precisa permitir a origem do frontend no CORS.
 
-Se o backend estiver em outro endereço, copie `.env.example` para `.env` e configure:
+## Build
 
-```dotenv
-VITE_API_URL=http://localhost:8080/api
-```
-
-Reinicie o Vite depois de alterar o `.env`.
-
-## O que já está conectado
-
-- Painel com resumo de produtos e vendas.
-- Criar, consultar, editar, remover e buscar produtos, clientes, funcionários, categorias, marcas, métodos de pagamento e endereços.
-- Cadastro de funcionários por `POST /api/funcionarios`, que abre uma sessão HTTP; login por `POST /api/auth/login` e encerramento por `POST /api/auth/logout`. A API exige sessão para as demais operações que alteram dados. A sessão visual não é persistida no navegador e termina ao recarregar a página.
-- Fluxo de vendas: iniciar atendimento, selecionar cliente, adicionar produtos, receber pagamento em uma ou mais formas e cancelar venda em aberto.
-- Busca, filtros de status, mensagens da API e estados de conexão.
-
-A API ainda não emite token de sessão. O frontend usa o funcionário autenticado para informar o CPF ao criar uma venda, conforme a interface atual do backend.
-
-## Build de produção
-
-```powershell
+```bash
 npm run build
 npm run preview
 ```
+
+O build de produção é gerado em `dist/`. O login usa e-mail e senha; a interface apresenta operação de vendas e cadastros, e mostra as opções de configuração para administradores. Consulte o README do backend para instruções de banco, permissões e execução da API.
