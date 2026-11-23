@@ -67,6 +67,7 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [modal, setModal] = useState(null);
   const [activeEmployee, setActiveEmployee] = useState(null);
+  const [sessionReady, setSessionReady] = useState(false);
   const isAdmin = activeEmployee?.perfil === 0;
   const attendantResources = ["produtos", "clientes", "enderecos"];
   const loggedEmployeeRecord = data.funcionarios.find(
@@ -102,6 +103,21 @@ export default function App() {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    let mounted = true;
+    request("/auth/me")
+      .then((profile) => {
+        if (mounted) setActiveEmployee(profile);
+      })
+      .catch(() => {
+        // Sem uma sessão válida, a interface começa no estado deslogado.
+      })
+      .finally(() => {
+        if (mounted) setSessionReady(true);
+      });
+    return () => { mounted = false; };
+  }, []);
 
   const navigate = (target) => {
     if (["email-config", "backup"].includes(target) && !isAdmin) {
@@ -230,16 +246,17 @@ export default function App() {
           <button
             className="profile-mini"
             onClick={() => setModal({ type: activeEmployee ? "my-profile" : "login" })}
+            disabled={!sessionReady}
           >
             <span className="avatar">
               {initials(activeEmployee?.nomePessoa)}
             </span>
             <span className="profile-copy">
-              <b>{activeEmployee?.nomePessoa || "Acessar sistema"}</b>
+              <b>{activeEmployee?.nomePessoa || (sessionReady ? "Acessar sistema" : "Verificando sessão…")}</b>
               <small>
                 {activeEmployee
                   ? isAdmin ? "Administrador" : "Atendente"
-                  : "Faça seu login"}
+                  : sessionReady ? "Faça seu login" : "Restaurando acesso"}
               </small>
             </span>
             <ChevronRight size={18} />
@@ -295,6 +312,7 @@ export default function App() {
               className="avatar avatar-top"
               title={activeEmployee?.nomePessoa || "Entrar"}
               onClick={() => setModal({ type: activeEmployee ? "my-profile" : "login" })}
+              disabled={!sessionReady}
             >
               {initials(activeEmployee?.nomePessoa)}
             </button>
