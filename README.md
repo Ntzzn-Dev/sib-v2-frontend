@@ -23,4 +23,4 @@ npm run build
 npm run preview
 ```
 
-O build de produção é gerado em `dist/`. O login usa e-mail e senha; a interface apresenta operação de vendas e cadastros, e mostra as opções de configuração para administradores. Consulte o README do backend para instruções de banco, permissões e execução da API.
+O build de produção é gerado em `dist/`. O login usa e-mail e senha; a interface apresenta operação de vendas e cadastros, e mostra as opções de configuração para administradores, incluindo backup e restauração manual do banco. Consulte o README do backend para instruções de banco, permissões e execução da API.

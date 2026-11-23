@@ -5,6 +5,7 @@ import {
   ChevronRight,
   ClipboardList,
   CreditCard,
+  Database,
   Heart,
   LayoutDashboard,
   LogOut,
@@ -25,6 +26,7 @@ import Dashboard from "./features/dashboard/Dashboard";
 import LoginModal from "./features/auth/LoginModal";
 import MyProfileModal from "./features/auth/MyProfileModal";
 import EmailSettingsPage from "./features/auth/EmailSettingsPage";
+import BackupPage from "./features/auth/BackupPage";
 import ResourcePage, {
   DeleteResourceModal,
   ResourceModal,
@@ -102,7 +104,7 @@ export default function App() {
   }, [loadAll]);
 
   const navigate = (target) => {
-    if (target === "email-config" && !isAdmin) {
+    if (["email-config", "backup"].includes(target) && !isAdmin) {
       setPage("overview");
       return;
     }
@@ -173,6 +175,7 @@ export default function App() {
     { id: "marcas", label: "Marcas", icon: Tag },
     { id: "metodos", label: "Pagamentos", icon: CreditCard },
     { id: "email-config", label: "E-mail remetente", icon: Mail },
+    { id: "backup", label: "Backup do banco", icon: Database },
   ];
 
   return (
@@ -259,7 +262,9 @@ export default function App() {
                   ? "Vendas"
                   : page === "email-config"
                     ? "E-mail remetente"
-                  : resourceDefs[page]?.label}
+                    : page === "backup"
+                      ? "Backup do banco"
+                      : resourceDefs[page]?.label}
             </strong>
           </div>
 
@@ -339,6 +344,15 @@ export default function App() {
             />
           )}
           {page === "email-config" && isAdmin && <EmailSettingsPage notify={notify} />}
+          {page === "backup" && isAdmin && (
+            <BackupPage
+              notify={notify}
+              onRestored={async () => {
+                await signOut();
+                notify("Backup restaurado. Entre novamente no sistema.");
+              }}
+            />
+          )}
           {resourceDefs[page] && (isAdmin || attendantResources.includes(page)) && (
             <ResourcePage
               resource={page}

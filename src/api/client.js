@@ -9,7 +9,9 @@ export async function request(path, options = {}) {
       ...options,
       credentials: "include",
       headers: {
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(options.body && !(options.body instanceof FormData)
+          ? { "Content-Type": "application/json" }
+          : {}),
         ...options.headers,
       },
     });
