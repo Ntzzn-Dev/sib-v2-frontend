@@ -33,9 +33,7 @@ export function NewSaleModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [createClient, setCreateClient] = useState(false);
-  const employeeExists =
-    employee &&
-    data.funcionarios.some((item) => item.cpfPessoa === employee.cpfPessoa);
+  const employeeExists = !!employee;
 
   const submit = async (event) => {
     event.preventDefault();

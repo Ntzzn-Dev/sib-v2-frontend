@@ -23,6 +23,7 @@ import { resourceDefs } from "./config/resources";
 import { initials } from "./lib/format";
 import { Toast } from "./components/ui";
 import Dashboard from "./features/dashboard/Dashboard";
+import { AttendantHome, PublicHome } from "./features/home/HomePage";
 import LoginModal from "./features/auth/LoginModal";
 import MyProfileModal from "./features/auth/MyProfileModal";
 import EmailSettingsPage from "./features/auth/EmailSettingsPage";
@@ -57,40 +58,51 @@ const loadPaths = [
   ["vendas", "/vendas"],
 ];
 
+const attendantLoadPaths = [
+  ["produtos", "/produtos"],
+  ["clientes", "/clientes"],
+  ["metodos", "/metodos-pagamento"],
+  ["enderecos", "/enderecos"],
+  ["vendas", "/vendas"],
+];
+
 export default function App() {
   const [data, setData] = useState(emptyData);
   const [page, setPage] = useState("overview");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useState(null);
   const [modal, setModal] = useState(null);
   const [activeEmployee, setActiveEmployee] = useState(null);
   const [sessionReady, setSessionReady] = useState(false);
+  const [initialSetup, setInitialSetup] = useState(false);
   const isAdmin = activeEmployee?.perfil === 0;
   const attendantResources = ["produtos", "clientes", "enderecos"];
-  const loggedEmployeeRecord = data.funcionarios.find(
-    (employee) => employee.cpfPessoa?.replace(/\D/g, "") === activeEmployee?.cpfPessoa?.replace(/\D/g, ""),
-  );
 
   const notify = useCallback((message, type = "success") => {
     setToast({ message, type });
     window.setTimeout(() => setToast(null), 4200);
   }, []);
 
-  const loadAll = useCallback(async () => {
+  const loadAll = useCallback(async (employee) => {
+    if (!employee) {
+      setData(emptyData);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
+      const paths = employee.perfil === 0 ? loadPaths : attendantLoadPaths;
       const responses = await Promise.all(
-        loadPaths.map(([, path]) => request(path)),
+        paths.map(([, path]) => request(path)),
       );
       setData(
-        Object.fromEntries(
-          loadPaths.map(([key], index) => [key, responses[index]]),
-        ),
+        { ...emptyData, ...Object.fromEntries(paths.map(([key], index) => [key, responses[index]])) },
       );
     } catch (loadError) {
       setError(loadError.message);
@@ -101,23 +113,37 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+    let mounted = true;
+    request("/auth/bootstrap")
+      .then((status) => {
+        if (mounted) setInitialSetup(status.cadastroInicial === true);
+      })
+      .catch((bootstrapError) => {
+        if (mounted) setError(bootstrapError.message);
+      });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
     request("/auth/me")
       .then((profile) => {
-        if (mounted) setActiveEmployee(profile);
+        if (mounted) {
+          setActiveEmployee(profile);
+          loadAll(profile);
+        }
       })
-      .catch(() => {
+      .catch((sessionError) => {
         // Sem uma sessão válida, a interface começa no estado deslogado.
+        if (mounted && !sessionError.message.includes("Faça login para realizar esta operação.")) {
+          setError(sessionError.message);
+        }
       })
       .finally(() => {
         if (mounted) setSessionReady(true);
       });
     return () => { mounted = false; };
-  }, []);
+  }, [loadAll]);
 
   const navigate = (target) => {
     if (["email-config", "backup"].includes(target) && !isAdmin) {
@@ -135,13 +161,28 @@ export default function App() {
     setError("");
   };
 
-  const refresh = async () => loadAll();
+  const refresh = async () => {
+    if (activeEmployee) {
+      await loadAll(activeEmployee);
+      return;
+    }
+    try {
+      const status = await request("/auth/bootstrap");
+      setInitialSetup(status.cadastroInicial === true);
+      setError("");
+    } catch (refreshError) {
+      setError(refreshError.message);
+    }
+  };
 
-  const saveEmployee = (employee) => {
+  const saveEmployee = async (employee) => {
     setActiveEmployee(employee);
+    setSessionReady(true);
+    setInitialSetup(false);
     setPage("overview");
     setQuery("");
     setError("");
+    await loadAll(employee);
   };
 
   const syncActiveEmployee = (employee) => {
@@ -160,6 +201,8 @@ export default function App() {
       // Encerra também a sessão visual quando a API estiver indisponível.
     }
     setActiveEmployee(null);
+    setData(emptyData);
+    setLoading(false);
     setPage("overview");
     setQuery("");
     setStatusFilter("all");
@@ -170,7 +213,7 @@ export default function App() {
   const openSale = (sale) => setModal({ type: "sale-detail", sale });
 
   const mainNavigation = [
-    { id: "overview", label: "Painel", icon: LayoutDashboard },
+    { id: "overview", label: isAdmin ? "Painel" : "Início", icon: LayoutDashboard },
   ];
 
   const operationsNavigation = [
@@ -214,12 +257,12 @@ export default function App() {
           </span>
         </a>
 
-        <NavigationGroup
+        {activeEmployee && <NavigationGroup
           title="VISÃO GERAL"
           items={mainNavigation}
           page={page}
           navigate={navigate}
-        />
+        />}
         {activeEmployee && <NavigationGroup
           title="OPERAÇÃO"
           items={operationsNavigation}
@@ -270,19 +313,21 @@ export default function App() {
       <main className="main-area">
         <header className="topbar">
           <div className="breadcrumb">
-            <span>Início</span>
-            <ChevronRight size={17} />
-            <strong>
-              {page === "overview"
-                ? "Painel"
-                : page === "vendas"
-                  ? "Vendas"
-                  : page === "email-config"
-                    ? "E-mail remetente"
-                    : page === "backup"
-                      ? "Backup do banco"
-                      : resourceDefs[page]?.label}
-            </strong>
+            {activeEmployee ? <>
+              <span>Início</span>
+              <ChevronRight size={17} />
+              <strong>
+                {page === "overview"
+                  ? isAdmin ? "Painel" : "Operação"
+                  : page === "vendas"
+                    ? "Vendas"
+                    : page === "email-config"
+                      ? "E-mail remetente"
+                      : page === "backup"
+                        ? "Backup do banco"
+                        : resourceDefs[page]?.label}
+              </strong>
+            </> : <strong>Sistema Integrado de Brechó</strong>}
           </div>
 
           <div className="topbar-right">
@@ -295,8 +340,9 @@ export default function App() {
                 year: "numeric",
               }).format(new Date())}
             </span>
-            <span className="top-divider" />
-            <button className="api-indicator" onClick={refresh}>
+            {activeEmployee && <>
+              <span className="top-divider" />
+              <button className="api-indicator" onClick={refresh}>
               <span
                 className={`api-dot ${
                   error ? "offline" : loading ? "connecting" : "online"
@@ -307,7 +353,8 @@ export default function App() {
                 : loading
                   ? "Conectando"
                   : "API conectada"}
-            </button>
+              </button>
+            </>}
             <button
               className="avatar avatar-top"
               title={activeEmployee?.nomePessoa || "Entrar"}
@@ -340,13 +387,30 @@ export default function App() {
             </div>
           )}
 
-          {page === "overview" && (
+          {page === "overview" && !sessionReady && (
+            <div className="session-loading"><span className="spinner" /> Verificando acesso…</div>
+          )}
+          {page === "overview" && sessionReady && !activeEmployee && (
+            <PublicHome
+              onLogin={() => setModal({ type: "login" })}
+              onSignup={() => setModal({ type: "resource", resource: "funcionarios" })}
+              allowSignup={initialSetup}
+            />
+          )}
+          {page === "overview" && activeEmployee && isAdmin && (
             <Dashboard
               data={data}
               loading={loading}
               go={navigate}
               setModal={setModal}
               activeEmployee={activeEmployee}
+            />
+          )}
+          {page === "overview" && activeEmployee && !isAdmin && (
+            <AttendantHome
+              employee={activeEmployee}
+              go={navigate}
+              onNewSale={() => setModal({ type: "new-sale" })}
             />
           )}
           {page === "vendas" && (
@@ -396,7 +460,7 @@ export default function App() {
           onSignup={() =>
             setModal({ type: "resource", resource: "funcionarios" })
           }
-          allowSignup={data.funcionarios.length === 0}
+          allowSignup={initialSetup}
           notify={notify}
         />
       )}
@@ -407,12 +471,12 @@ export default function App() {
             syncActiveEmployee(profile);
             await refresh();
           }}
-          fallbackAddress={loggedEmployeeRecord?.endPessoa}
+          fallbackAddress={activeEmployee?.endPessoa}
           onSignOut={async () => { setModal(null); await signOut(); }}
           notify={notify}
         />
       )}
-      {modal?.type === "resource" && (isAdmin || (!!activeEmployee && ["clientes", "enderecos"].includes(modal.resource)) || (data.funcionarios.length === 0 && modal.resource === "funcionarios")) && (
+      {modal?.type === "resource" && (isAdmin || (!!activeEmployee && ["clientes", "enderecos"].includes(modal.resource)) || (initialSetup && modal.resource === "funcionarios")) && (
         <ResourceModal
           key={`${modal.resource}-${modal.record?.[resourceDefs[modal.resource].id] ?? "new"}`}
           resource={modal.resource}
@@ -422,7 +486,7 @@ export default function App() {
           notify={notify}
           refresh={refresh}
           onSaved={modal.resource === "funcionarios" ? syncActiveEmployee : undefined}
-          onCreated={modal.resource === "funcionarios" && data.funcionarios.length === 0 ? saveEmployee : undefined}
+          onCreated={modal.resource === "funcionarios" && initialSetup ? saveEmployee : undefined}
         />
       )}
       {modal?.type === "delete-resource" && isAdmin && (

@@ -63,7 +63,7 @@ export default function MyProfileModal({ onClose, onSaved, onSignOut, fallbackAd
         <FieldInput label="E-mail de login" required type="email" value={form.email} onChange={(event) => set("email", event.target.value)} />
         <FieldInput label="Telefone" value={form.telPessoa || ""} onChange={(event) => set("telPessoa", event.target.value)} />
         <FieldInput label="Senha atual" type="password" autoComplete="current-password" value={form.senhaAtual} onChange={(event) => set("senhaAtual", event.target.value)} />
-        <FieldInput label="Nova senha" type="password" autoComplete="new-password" value={form.novaSenha} onChange={(event) => set("novaSenha", event.target.value)} />
+        <FieldInput label="Nova senha" type="password" autoComplete="new-password" placeholder="Deixe em branco para manter senha" value={form.novaSenha} onChange={(event) => set("novaSenha", event.target.value)} />
       </div>
       <h3 className="form-section-title">Endereço</h3>
       <div className="form-grid">
