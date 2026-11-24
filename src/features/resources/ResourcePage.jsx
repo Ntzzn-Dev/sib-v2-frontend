@@ -34,6 +34,7 @@ export default function ResourcePage({
   refresh,
   loading,
   canManage,
+  canEdit,
   canCreate,
   notify,
 }) {
@@ -180,7 +181,7 @@ export default function ResourcePage({
                   {def.columns.map(([label]) => (
                     <th key={label}>{label}</th>
                   ))}
-                  {canManage && <th className="action-col">AÇÕES</th>}
+                  {(canManage || canEdit) && <th className="action-col">AÇÕES</th>}
                 </tr>
               </thead>
               <tbody>
@@ -222,22 +223,23 @@ export default function ResourcePage({
                         )}
                       </td>
                     ))}
-                    {canManage && <td className="action-cell">
-                      {isInactive(item) ? <button
+                    {(canManage || canEdit) && <td className="action-cell">
+                      {canManage && isInactive(item) ? <button
                         className="row-action"
                         title="Reativar"
                         onClick={() => restore(item)}
                       ><RefreshCw size={18} /></button> : <>
-                      <button
-                        className="row-action"
+                      {!isInactive(item) && canEdit && <button
+                        className="row-action resource-edit-action"
                         title="Editar"
+                        aria-label="Editar cadastro"
                         onClick={() =>
                           setModal({ type: "resource", resource, record: item })
                         }
                       >
                         <Pencil size={18} />
-                      </button>
-                      <button
+                      </button>}
+                      {canManage && !isInactive(item) && <button
                         className="row-action danger-action"
                         title="Desativar"
                         onClick={() =>
@@ -249,7 +251,7 @@ export default function ResourcePage({
                         }
                       >
                         <Trash2 size={18} />
-                      </button>
+                      </button>}
                       </>}
                     </td>}
                   </tr>
@@ -265,6 +267,7 @@ export default function ResourcePage({
                 item={item}
                 def={def}
                 canManage={canManage}
+                canEdit={canEdit}
                 inactive={isInactive(item)}
                 onRestore={() => restore(item)}
                 onEdit={() =>
@@ -299,7 +302,7 @@ export default function ResourcePage({
   );
 }
 
-function ResourceCard({ item, def, canManage, inactive, onEdit, onDelete, onRestore }) {
+function ResourceCard({ item, def, canManage, canEdit, inactive, onEdit, onDelete, onRestore }) {
   const Icon = def.icon;
   return (
     <article className="resource-card">
@@ -319,16 +322,17 @@ function ResourceCard({ item, def, canManage, inactive, onEdit, onDelete, onRest
       )}
       <div className="resource-card-foot">
         <span>#{item[def.id]}</span>
-        {canManage && <div>
-          {inactive ? <button className="row-action" title="Reativar" onClick={onRestore}>
+        {(canManage || canEdit) && <div>
+          {canManage && inactive ? <button className="row-action" title="Reativar" onClick={onRestore}>
             <RefreshCw size={17} />
           </button> : <>
-          <button className="row-action" onClick={onEdit}>
+          {canEdit && !inactive && <button className="row-action resource-edit-action" title="Editar" aria-label="Editar cadastro" onClick={onEdit}>
             <Pencil size={17} />
-          </button>
-          <button className="row-action danger-action" onClick={onDelete}>
+            <span>Editar</span>
+          </button>}
+          {canManage && <button className="row-action danger-action" onClick={onDelete}>
             <Trash2 size={17} />
-          </button>
+          </button>}
           </>}
         </div>}
       </div>

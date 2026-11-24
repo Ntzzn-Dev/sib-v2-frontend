@@ -448,6 +448,7 @@ export default function App() {
               refresh={refresh}
               loading={loading}
               canManage={isAdmin}
+              canEdit={isAdmin || (!!activeEmployee && ["clientes", "enderecos"].includes(page))}
               canCreate={isAdmin || (!!activeEmployee && ["clientes", "enderecos"].includes(page))}
             />
           )}

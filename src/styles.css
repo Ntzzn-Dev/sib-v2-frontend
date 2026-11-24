@@ -1209,6 +1209,14 @@ select:focus-visible {
   background: #f1f2ed;
   color: #586a4d;
 }
+.row-action.resource-edit-action {
+  width: auto;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
 .danger-action:hover {
   background: #fbefed;
   color: #bd6256;
